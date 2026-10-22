@@ -38,84 +38,97 @@ export interface TrajectoryFoldResult {
 }
 
 /**
+ * Evaluates verification outcome from structured terminal/test summary indicators
+ * rather than naive single-word substring checks.
+ */
+export function evaluateVerificationOutcome(texts: string[]): {
+  hasExplicitFailure: boolean;
+  hasVerifiedSuitePass: boolean;
+} {
+  let lastOutcome: "pass" | "fail" | "unknown" = "unknown";
+  let sawAnyFailure = false;
+
+  const suiteFailRegex =
+    /(\bexit code [1-9]\d*\b|\b[1-9]\d*\s+failed\b|\bFAIL\s+\S+\.\w+|\bAssertionError\b|\bSQLSTATE\s+[0-9A-Z]{5}\b|\bELIFECYCLE\b)/i;
+  const suitePassRegex =
+    /(\bexit code 0\b|\ball tests passed\b|\bPASS\s+\d+\/\d+\b|\b0 failed\b|\bbuild succeeded\b)/i;
+
+  for (const text of texts) {
+    if (suiteFailRegex.test(text)) {
+      sawAnyFailure = true;
+      lastOutcome = "fail";
+    } else if (suitePassRegex.test(text)) {
+      lastOutcome = "pass";
+    }
+  }
+
+  return {
+    hasExplicitFailure: sawAnyFailure && lastOutcome !== "pass",
+    hasVerifiedSuitePass: lastOutcome === "pass",
+  };
+}
+
+/**
  * Episodic Memory Folding Engine
- * Compresses long multi-turn Agent tool-use trajectories into structured, high-density
- * `<EpisodicMemoryFrame>` blocks while compressing individual active tool outputs.
+ * Supports two modes:
+ * 1. `preserveToolPairing: true` (used by live OpenAI/Anthropic proxies):
+ *    Never breaks `assistant.tool_calls` <-> `tool.tool_call_id` message schema constraints;
+ *    folds older tool outputs in-place into compact `<EpisodicToolDigest>` blocks.
+ * 2. `preserveToolPairing: false` (default for MCP `diet_fold_trajectory` & analysis):
+ *    Condenses closed intermediate turns into a unified `<EpisodicMemoryFrame>` while ensuring
+ *    no orphan `tool` or `tool_calls` message is left dangling at the boundary.
  */
 export function foldAgentTrajectory(
   messages: AgentMessage[],
   options: {
     keepRecentMessages?: number;
     compressRecentToolOutputs?: boolean;
+    preserveToolPairing?: boolean;
     source?: AuditRecord["source"];
   } = {}
 ): TrajectoryFoldResult {
   const start = performance.now();
   const keepRecent = options.keepRecentMessages ?? 4;
   const compressRecentTools = options.compressRecentToolOutputs ?? true;
+  const preservePairing = options.preserveToolPairing ?? false;
 
   const originalSerialized = JSON.stringify(messages, null, 2);
   const originalTokens = countTokens(originalSerialized);
 
-  if (messages.length <= keepRecent + 2) {
-    // Still compress any large tool outputs in place
-    const processed = messages.map((msg) => {
-      if (msg.role === "tool" && msg.content.length > 400) {
-        const res = smartCompress(msg.content, { recordAudit: false });
-        return { ...msg, content: res.compressedText };
-      }
-      return msg;
-    });
-    const compressedTokens = countTokens(JSON.stringify(processed, null, 2));
-    const savedTokens = Math.max(0, originalTokens - compressedTokens);
-    const ratio =
-      originalTokens > 0
-        ? Number(((savedTokens / originalTokens) * 100).toFixed(1))
-        : 0;
-    return {
-      originalMessages: messages,
-      foldedMessages: processed,
-      framesCreated: [],
-      originalTokens,
-      compressedTokens,
-      savedTokens,
-      compressionRatioPct: ratio,
-      latencyMs: Number((performance.now() - start).toFixed(2)),
-    };
-  }
-
-  // Separate pinned header messages (system + first user task), middle episodic zone, and active tail
-  const headerMessages: AgentMessage[] = [];
+  // Separate pinned header messages (system + initial user prompt)
   let middleStartIndex = 0;
-
   for (let i = 0; i < messages.length; i++) {
     if (messages[i].role === "system" || (messages[i].role === "user" && i <= 1)) {
-      headerMessages.push(messages[i]);
       middleStartIndex = i + 1;
     } else {
       break;
     }
   }
 
-  const tailStartIndex = Math.max(middleStartIndex, messages.length - keepRecent);
+  let tailStartIndex = Math.max(middleStartIndex, messages.length - keepRecent);
+  // Ensure tailStartIndex does NOT land on a `role: "tool"` message (which would orphan it from its assistant.tool_calls parent)
+  while (tailStartIndex > middleStartIndex && messages[tailStartIndex]?.role === "tool") {
+    tailStartIndex--;
+  }
+
+  const headerMessages = messages.slice(0, middleStartIndex);
   const middleMessages = messages.slice(middleStartIndex, tailStartIndex);
   const tailMessages = messages.slice(tailStartIndex);
 
   const framesCreated: EpisodicMemoryFrame[] = [];
-  const foldedMiddleMessages: AgentMessage[] = [];
+  let foldedMiddleMessages: AgentMessage[] = [];
 
   if (middleMessages.length >= 2) {
     const toolsInvoked = new Set<string>();
     const filesTouched = new Set<string>();
     const pitfallsAndErrors: string[] = [];
     const keyFindings: string[] = [];
-    let sawPass = false;
-    let sawError = false;
+    const rawTextsForEval: string[] = [];
 
     const fileRegex =
       /(?:[a-zA-Z0-9_.-]+\/)+[a-zA-Z0-9_.-]+\.(?:ts|tsx|js|py|go|rs|json|sql|yaml|md)/g;
     const errorLineRegex =
-      /(?:Error|Exception|TypeError|SyntaxError|FAIL|failed|ENOENT|status\s*[45]\d\d)[:\s][^\n]{5,120}/gi;
+      /(?:Error|Exception|TypeError|SyntaxError|FAIL|failed|ENOENT|SQLSTATE\s+\w+|status\s*[45]\d\d)[:\s][^\n]{5,120}/gi;
 
     for (const msg of middleMessages) {
       if (msg.tool_calls) {
@@ -127,7 +140,10 @@ export function foldAgentTrajectory(
       }
       if (msg.name) toolsInvoked.add(msg.name);
 
-      const content = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+      const content =
+        typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+      rawTextsForEval.push(content);
+
       const fileMatches = content.match(fileRegex);
       if (fileMatches) {
         fileMatches.slice(0, 6).forEach((f) => filesTouched.add(f));
@@ -135,17 +151,12 @@ export function foldAgentTrajectory(
 
       const errMatches = content.match(errorLineRegex);
       if (errMatches) {
-        sawError = true;
         for (const m of errMatches.slice(0, 2)) {
           const clean = m.trim();
           if (!pitfallsAndErrors.includes(clean) && pitfallsAndErrors.length < 4) {
             pitfallsAndErrors.push(clean);
           }
         }
-      }
-
-      if (/\b(all tests passed|PASS\b|0 errors|build succeeded|fixed)\b/i.test(content)) {
-        sawPass = true;
       }
 
       if (msg.role === "assistant" && content.trim().length > 20) {
@@ -156,11 +167,13 @@ export function foldAgentTrajectory(
       }
     }
 
-    const verificationStatus: EpisodicMemoryFrame["verificationStatus"] = sawPass
-      ? "VERIFIED_PASS"
-      : sawError
-        ? "HAD_ERRORS"
-        : "IN_PROGRESS";
+    const evalOutcome = evaluateVerificationOutcome(rawTextsForEval);
+    const verificationStatus: EpisodicMemoryFrame["verificationStatus"] =
+      evalOutcome.hasVerifiedSuitePass
+        ? "VERIFIED_PASS"
+        : evalOutcome.hasExplicitFailure || pitfallsAndErrors.length > 0
+          ? "HAD_ERRORS"
+          : "IN_PROGRESS";
 
     const vaultEntry = globalVault.storeFoldedSlice({
       category: "episodic",
@@ -181,33 +194,57 @@ export function foldAgentTrajectory(
     };
     framesCreated.push(frame);
 
-    const xmlSummary = [
-      `<EpisodicMemoryFrame id="${frame.frameId}" turns_folded="${frame.turnsFolded}" status="${frame.verificationStatus}" expand_ref="${frame.vaultRef}">`,
-      `  <ToolsInvoked>${frame.toolsInvoked.join(", ") || "general_reasoning"}</ToolsInvoked>`,
-      `  <FilesTouched>${frame.filesTouched.join(", ") || "none"}</FilesTouched>`,
-      frame.pitfallsAndErrors.length > 0
-        ? `  <PitfallsEncountered>\n${frame.pitfallsAndErrors.map((p) => `    - [AVOID] ${p}`).join("\n")}\n  </PitfallsEncountered>`
-        : `  <PitfallsEncountered>None</PitfallsEncountered>`,
-      frame.keyFindings.length > 0
-        ? `  <KeyReasoningSteps>\n${frame.keyFindings.map((k) => `    - ${k}`).join("\n")}\n  </KeyReasoningSteps>`
-        : "",
-      `  <RecoveryHint>Call MCP tool 'diet_expand_frame' with refId="${frame.vaultRef}" if raw intermediate logs are needed.</RecoveryHint>`,
-      `</EpisodicMemoryFrame>`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    if (preservePairing) {
+      // Protocol-Safe Mode: keep message roles & tool_call_ids valid for strict OpenAI/Anthropic schemas
+      foldedMiddleMessages = middleMessages.map((msg) => {
+        if (msg.role === "tool" && typeof msg.content === "string" && msg.content.length > 180) {
+          const singleVault = globalVault.storeFoldedSlice({
+            category: "episodic",
+            label: `Historical tool output (${msg.name || msg.tool_call_id || "tool"})`,
+            originalContent: msg.content,
+            compressedPreview: `[Folded historical tool output]`,
+          });
+          const filesInMsg = (msg.content.match(fileRegex) || []).slice(0, 4).join(", ");
+          const errsInMsg = (msg.content.match(errorLineRegex) || [])
+            .slice(0, 2)
+            .map((e) => e.trim())
+            .join(" | ");
+          return {
+            ...msg,
+            content: `<EpisodicToolDigest ref="${singleVault.refId}" parent_frame="${frame.vaultRef}" files="${filesInMsg || "none"}" errors="${errsInMsg || "none"}">Historical tool output folded (${countTokens(msg.content)} tokens). Call MCP tool diet_expand_frame(refId="${singleVault.refId}") to restore.</EpisodicToolDigest>`,
+          };
+        }
+        return msg;
+      });
+    } else {
+      const xmlSummary = [
+        `<EpisodicMemoryFrame id="${frame.frameId}" turns_folded="${frame.turnsFolded}" status="${frame.verificationStatus}" expand_ref="${frame.vaultRef}">`,
+        `  <ToolsInvoked>${frame.toolsInvoked.join(", ") || "general_reasoning"}</ToolsInvoked>`,
+        `  <FilesTouched>${frame.filesTouched.join(", ") || "none"}</FilesTouched>`,
+        frame.pitfallsAndErrors.length > 0
+          ? `  <PitfallsEncountered>\n${frame.pitfallsAndErrors.map((p) => `    - [AVOID] ${p}`).join("\n")}\n  </PitfallsEncountered>`
+          : `  <PitfallsEncountered>None</PitfallsEncountered>`,
+        frame.keyFindings.length > 0
+          ? `  <KeyReasoningSteps>\n${frame.keyFindings.map((k) => `    - ${k}`).join("\n")}\n  </KeyReasoningSteps>`
+          : "",
+        `  <RecoveryHint>Call MCP tool 'diet_expand_frame' with refId="${frame.vaultRef}" if raw intermediate logs are needed.</RecoveryHint>`,
+        `</EpisodicMemoryFrame>`,
+      ]
+        .filter(Boolean)
+        .join("\n");
 
-    foldedMiddleMessages.push({
-      role: "assistant",
-      content: xmlSummary,
-    });
+      foldedMiddleMessages.push({
+        role: "assistant",
+        content: xmlSummary,
+      });
+    }
   } else {
     foldedMiddleMessages.push(...middleMessages);
   }
 
-  // Also compress oversized tool outputs in the active tail
+  // Compress oversized tool outputs in the active tail using structure-aware compressors
   const processedTail = tailMessages.map((msg) => {
-    if (compressRecentTools && msg.role === "tool" && msg.content.length > 300) {
+    if (compressRecentTools && msg.role === "tool" && typeof msg.content === "string" && msg.content.length > 260) {
       const res = smartCompress(msg.content, { recordAudit: false });
       return { ...msg, content: res.compressedText };
     }
@@ -227,12 +264,12 @@ export function foldAgentTrajectory(
   const auditRecord = globalVault.recordAudit({
     source: options.source || "playground",
     contentType: "episodic",
-    mode: `keep_recent_${keepRecent}`,
+    mode: preservePairing ? `schema_safe_keep_${keepRecent}` : `keep_recent_${keepRecent}`,
     originalTokens,
     compressedTokens,
     latencyMs,
     refIds: framesCreated.map((f) => f.vaultRef),
-    summary: `Folded ${middleMessages.length} trajectory turns into EpisodicMemoryFrame (${originalTokens} → ${compressedTokens} tokens, -${compressionRatioPct}%)`,
+    summary: `Folded ${middleMessages.length} trajectory turns (${originalTokens} → ${compressedTokens} tokens, -${compressionRatioPct}%)`,
   });
 
   return {
