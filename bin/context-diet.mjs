@@ -14,7 +14,7 @@ const cli = fileURLToPath(new URL("../src/cli.ts", import.meta.url));
 
 const result = spawnSync(
   process.execPath,
-  ["--experimental-strip-types", cli, ...process.argv.slice(2)],
+  ["--no-warnings", "--experimental-strip-types", cli, ...process.argv.slice(2)],
   { stdio: "inherit" }
 );
 

@@ -4,7 +4,7 @@ export function getDashboardHtml(): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ContextDiet — AI Agent Context Engineering Gateway & Memory Folder</title>
+  <title>ContextDiet — AI Agent Context Engineering Gateway & Persistent SQLite Vault</title>
   <style>
     :root {
       --bg-base: #070a12;
@@ -36,7 +36,6 @@ export function getDashboardHtml(): string {
       margin: 0 auto;
       padding: 20px 28px 48px;
     }
-    /* Top Navbar */
     .navbar {
       display: flex;
       align-items: center;
@@ -49,402 +48,182 @@ export function getDashboardHtml(): string {
       margin-bottom: 22px;
       box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
+    .brand { display: flex; align-items: center; gap: 14px; }
     .logo-badge {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
+      width: 40px; height: 40px; border-radius: 10px;
       background: linear-gradient(135deg, #0ea5e9, #10b981);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 18px;
-      color: #041019;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 18px; color: #041019;
       box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
     }
-    .brand-title {
-      font-size: 19px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .brand-title { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
     .tag-pill {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 9px;
-      border-radius: 999px;
-      background: rgba(56, 189, 248, 0.14);
-      color: var(--accent-cyan);
+      font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px;
+      background: rgba(56, 189, 248, 0.14); color: var(--accent-cyan);
       border: 1px solid rgba(56, 189, 248, 0.3);
     }
-    .brand-sub {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .brand-sub { font-size: 12px; color: var(--text-muted); }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
     .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-emerald);
-      box-shadow: 0 0 10px var(--accent-emerald);
-      display: inline-block;
-      margin-right: 6px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent-emerald); box-shadow: 0 0 10px var(--accent-emerald);
+      display: inline-block; margin-right: 6px;
     }
     .endpoint-chip {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      padding: 6px 12px;
-      border-radius: 8px;
-      background: var(--bg-code);
-      border: 1px solid var(--border);
-      color: #cbd5e1;
+      font-family: var(--font-mono); font-size: 12px; padding: 6px 12px;
+      border-radius: 8px; background: var(--bg-code); border: 1px solid var(--border); color: #cbd5e1;
     }
     .btn {
-      cursor: pointer;
-      border: none;
-      border-radius: 9px;
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.18s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
+      cursor: pointer; border: none; border-radius: 9px; padding: 8px 16px;
+      font-size: 13px; font-weight: 600; transition: all 0.18s ease;
+      display: inline-flex; align-items: center; gap: 7px;
     }
     .btn-primary {
-      background: linear-gradient(135deg, #0ea5e9, #10b981);
-      color: #04131a;
+      background: linear-gradient(135deg, #0ea5e9, #10b981); color: #04131a;
       box-shadow: 0 4px 15px rgba(16, 185, 129, 0.28);
     }
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      filter: brightness(1.08);
-    }
-    .btn-secondary {
-      background: var(--bg-card);
-      color: var(--text-main);
-      border: 1px solid var(--border);
-    }
-    .btn-secondary:hover {
-      border-color: var(--accent-cyan);
-      background: #19233b;
-    }
+    .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .btn-secondary { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent-cyan); background: #19233b; }
 
-    /* KPI Telemetry Cards */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 22px;
-    }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
     .kpi-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px 20px;
-      position: relative;
-      overflow: hidden;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 20px; position: relative; overflow: hidden;
     }
     .kpi-card::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-emerald));
-      opacity: 0.7;
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-emerald)); opacity: 0.7;
     }
     .kpi-label {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: space-between;
     }
-    .kpi-value {
-      font-size: 28px;
-      font-weight: 800;
-      font-family: var(--font-mono);
-      letter-spacing: -0.03em;
-    }
-    .kpi-sub {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 6px;
-    }
+    .kpi-value { font-size: 28px; font-weight: 800; font-family: var(--font-mono); letter-spacing: -0.03em; }
+    .kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
     .text-emerald { color: var(--accent-emerald); }
     .text-cyan { color: var(--accent-cyan); }
     .text-violet { color: var(--accent-violet); }
     .text-amber { color: var(--accent-amber); }
 
-    /* Main Workspace Tabs */
-    .tabs-bar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 12px;
-    }
+    .tabs-bar { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
     .tab-btn {
-      padding: 9px 18px;
-      border-radius: 9px;
-      font-size: 13px;
-      font-weight: 600;
-      background: transparent;
-      color: var(--text-muted);
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: all 0.15s;
+      padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600;
+      background: transparent; color: var(--text-muted); border: 1px solid transparent; cursor: pointer;
     }
     .tab-btn.active {
-      background: rgba(56, 189, 248, 0.13);
-      color: var(--accent-cyan);
-      border-color: rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.13); color: var(--accent-cyan); border-color: rgba(56, 189, 248, 0.35);
     }
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
 
-    /* Playground Controls */
     .control-strip {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 18px;
-      margin-bottom: 16px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 12px; background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;
     }
-    .preset-group {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-    }
+    .preset-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .preset-btn {
-      font-size: 12px;
-      padding: 6px 12px;
-      border-radius: 8px;
-      background: var(--bg-card);
-      color: #cbd5e1;
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all 0.15s;
+      font-size: 12px; padding: 6px 12px; border-radius: 8px;
+      background: var(--bg-card); color: #cbd5e1; border: 1px solid var(--border); cursor: pointer;
     }
     .preset-btn:hover, .preset-btn.active {
-      border-color: var(--accent-emerald);
-      color: #fff;
-      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--accent-emerald); color: #fff; background: rgba(16, 185, 129, 0.15);
     }
-    .options-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .options-group { display: flex; align-items: center; gap: 10px; }
     select, input[type="text"] {
-      background: var(--bg-code);
-      color: var(--text-main);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 7px 11px;
-      font-size: 12px;
-      font-family: var(--font-sans);
+      background: var(--bg-code); color: var(--text-main); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 11px; font-size: 12px;
     }
-
-    /* Side-by-Side Diff Workbench */
-    .workbench-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
+    .workbench-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
     .editor-panel {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 14px; display: flex; flex-direction: column; overflow: hidden;
     }
     .panel-header {
-      padding: 12px 16px;
-      background: rgba(19, 27, 46, 0.9);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 13px;
-      font-weight: 600;
+      padding: 12px 16px; background: rgba(19, 27, 46, 0.9); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600;
     }
     .badge-metric {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 3px 9px;
-      border-radius: 6px;
-      background: var(--bg-code);
-      border: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 11px; padding: 3px 9px;
+      border-radius: 6px; background: var(--bg-code); border: 1px solid var(--border);
     }
     textarea.code-area {
-      width: 100%;
-      height: 430px;
-      background: var(--bg-code);
-      color: #e2e8f0;
-      border: none;
-      padding: 14px 16px;
-      font-family: var(--font-mono);
-      font-size: 12.5px;
-      line-height: 1.55;
-      resize: vertical;
-      outline: none;
+      width: 100%; height: 430px; background: var(--bg-code); color: #e2e8f0;
+      border: none; padding: 14px 16px; font-family: var(--font-mono); font-size: 12.5px;
+      line-height: 1.55; resize: vertical; outline: none;
     }
-
-    /* Vault Ref Pills & Modal */
     .vault-bar {
-      padding: 10px 16px;
-      background: rgba(9, 13, 22, 0.85);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      min-height: 44px;
+      padding: 10px 16px; background: rgba(9, 13, 22, 0.85); border-top: 1px solid var(--border);
+      display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 44px;
     }
     .ref-pill {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 3px 9px;
-      border-radius: 6px;
-      background: rgba(139, 92, 246, 0.16);
-      color: #c4b5fd;
-      border: 1px solid rgba(139, 92, 246, 0.4);
-      cursor: pointer;
-      transition: all 0.15s;
+      font-family: var(--font-mono); font-size: 11px; padding: 3px 9px; border-radius: 6px;
+      background: rgba(139, 92, 246, 0.16); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.4); cursor: pointer;
     }
-    .ref-pill:hover {
-      background: rgba(139, 92, 246, 0.32);
-      color: #fff;
-    }
-
-    /* Tables */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .data-table th, .data-table td {
-      padding: 12px 14px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-    }
+    .ref-pill:hover { background: rgba(139, 92, 246, 0.32); color: #fff; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th, .data-table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
     .data-table th {
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 11.5px;
-      text-transform: uppercase;
-      background: rgba(19, 27, 46, 0.6);
-    }
-    .data-table tr:hover td {
-      background: rgba(56, 189, 248, 0.04);
+      color: var(--text-muted); font-weight: 600; font-size: 11.5px;
+      text-transform: uppercase; background: rgba(19, 27, 46, 0.6);
     }
     .mono { font-family: var(--font-mono); }
-
-    /* Modal for Reversible Vault Inspection */
     .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(3, 6, 12, 0.78);
-      backdrop-filter: blur(6px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 999;
-      padding: 24px;
+      position: fixed; inset: 0; background: rgba(3, 6, 12, 0.78); backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center; z-index: 999; padding: 24px;
     }
     .modal-backdrop.open { display: flex; }
     .modal-box {
-      background: var(--bg-panel);
-      border: 1px solid var(--accent-violet);
-      border-radius: 14px;
-      width: 100%;
-      max-width: 820px;
-      overflow: hidden;
-      box-shadow: 0 25px 60px rgba(0,0,0,0.75);
+      background: var(--bg-panel); border: 1px solid var(--accent-violet);
+      border-radius: 14px; width: 100%; max-width: 820px; overflow: hidden;
     }
     .modal-header {
-      padding: 14px 20px;
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      padding: 14px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
     }
     .modal-body {
-      padding: 18px 20px;
-      max-height: 65vh;
-      overflow-y: auto;
-      font-family: var(--font-mono);
-      font-size: 12.5px;
-      white-space: pre-wrap;
-      background: var(--bg-code);
-      color: #a7f3d0;
+      padding: 18px 20px; max-height: 65vh; overflow-y: auto; font-family: var(--font-mono);
+      font-size: 12.5px; white-space: pre-wrap; background: var(--bg-code); color: #a7f3d0;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Top Header -->
     <header class="navbar">
       <div class="brand">
         <div class="logo-badge">CD</div>
         <div>
           <div class="brand-title">
             ContextDiet
-            <span class="tag-pill">v0.1.0 · MCP + Proxy + Vault</span>
+            <span class="tag-pill">v0.2.0 · Streaming Proxy + SQLite WAL Vault + MCP</span>
           </div>
           <div class="brand-sub">
-            Smart Context Engineering Gateway · Lossless Tool Output Compressor & Episodic Memory Folder
+            Streaming OpenAI (/v1/chat/completions, /v1/responses) & Anthropic (/v1/messages) Proxy · Persistent SQLite Vault
           </div>
         </div>
       </div>
       <div class="nav-actions">
-        <span class="endpoint-chip"><span class="status-dot"></span>Proxy: /v1/chat/completions & /v1/messages</span>
-        <span class="endpoint-chip">MCP: /mcp (stdio & HTTP)</span>
+        <span class="endpoint-chip"><span class="status-dot"></span>SSE Streaming Ready</span>
+        <span class="endpoint-chip">SQLite Vault: .context-diet/vault.sqlite</span>
         <button class="btn btn-secondary" onclick="runFullBenchmark()">⚡ Run Benchmark Suite</button>
       </div>
     </header>
 
-    <!-- Live KPI Telemetry Grid -->
     <section class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">
-          <span>Total Tokens Saved</span>
-          <span>BPE cl100k</span>
+          <span>Net Tokens Saved</span>
+          <span>After Expansion Overhead</span>
         </div>
         <div class="kpi-value text-emerald" id="kpi-saved-tokens">0</div>
-        <div class="kpi-sub" id="kpi-token-breakdown">Raw: 0 → Diet: 0 tokens</div>
+        <div class="kpi-sub" id="kpi-token-breakdown">Gross Saved: 0 | Expand Overhead: 0</div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-label">
-          <span>Avg Compression Ratio</span>
-          <span>Zero Fact Loss</span>
+          <span>Net Compression Ratio</span>
+          <span>Gross vs. Net</span>
         </div>
         <div class="kpi-value text-cyan" id="kpi-ratio">0.0%</div>
         <div class="kpi-sub" id="kpi-latency">Avg pipeline latency: 0.0 ms</div>
@@ -452,36 +231,34 @@ export function getDashboardHtml(): string {
 
       <div class="kpi-card">
         <div class="kpi-label">
-          <span>Reversible Vault Slices</span>
-          <span>100% Recoverable</span>
+          <span>SQLite Vault Slices</span>
+          <span>Cross-Process WAL</span>
         </div>
         <div class="kpi-value text-violet" id="kpi-vault-count">0</div>
-        <div class="kpi-sub">Click any <code class="mono">diet_ref:*</code> hash to restore</div>
+        <div class="kpi-sub" id="kpi-vault-expansions">Restored 0 times via diet_expand_frame</div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-label">
-          <span>Context Rot Risk & ROI</span>
-          <span>Claude / OpenAI</span>
+          <span>Context Rot Risk & Net ROI</span>
+          <span>Heuristic BPE Est.</span>
         </div>
         <div class="kpi-value text-amber" id="kpi-rot-level">LOW (12/100)</div>
-        <div class="kpi-sub" id="kpi-usd-saved">Est. Saved: $0.0000 (Sonnet) | $0.0000 (Opus)</div>
+        <div class="kpi-sub" id="kpi-usd-saved">Est. Saved/1k runs: $0.00 (Sonnet)</div>
       </div>
     </section>
 
-    <!-- Navigation Tabs -->
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="switchTab('playground', this)">🔬 Interactive Context Compressor & Memory Folder</button>
-      <button class="tab-btn" onclick="switchTab('benchmark', this)">📊 Reproducible Benchmark & Recall Matrix</button>
+      <button class="tab-btn" onclick="switchTab('benchmark', this)">📊 Gross vs. Net Savings Benchmark</button>
       <button class="tab-btn" onclick="switchTab('audit', this)">🛰️ Live Proxy & MCP Telemetry Log</button>
-      <button class="tab-btn" onclick="switchTab('integration', this)">🔌 1-Click MCP & Proxy Integration Guide</button>
+      <button class="tab-btn" onclick="switchTab('integration', this)">🔌 Codex CLI / Claude Code / OpenCode Setup</button>
     </div>
 
-    <!-- TAB 1: Interactive Playground -->
     <div id="tab-playground" class="tab-pane active">
       <div class="control-strip">
         <div class="preset-group">
-          <span style="font-size:12px;color:var(--text-muted);font-weight:600;">Load Sample Scenario:</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:600;">Sample Scenario:</span>
           <button class="preset-btn active" onclick="loadSample('json-k8s-api', this)">1. K8s 65-Node JSON (500 Deadlock)</button>
           <button class="preset-btn" onclick="loadSample('log-vitest-crash', this)">2. Vitest 225-Test Log (Buried Failure)</button>
           <button class="preset-btn" onclick="loadSample('code-ts-skeleton', this)">3. TypeScript AST Skeleton</button>
@@ -493,7 +270,7 @@ export function getDashboardHtml(): string {
           <select id="select-aggressiveness" title="Aggressiveness Mode">
             <option value="balanced" selected>Mode: Balanced (Recommended)</option>
             <option value="conservative">Mode: Conservative</option>
-            <option value="aggressive">Mode: Aggressive (Max Savings)</option>
+            <option value="aggressive">Mode: Aggressive</option>
           </select>
           <input type="text" id="input-focus-kw" placeholder="Focus symbol (e.g. executeAtomicSettlement)" style="width:230px;" />
           <button class="btn btn-primary" onclick="executePlaygroundCompression()">🚀 Compress / Fold Context</button>
@@ -501,7 +278,6 @@ export function getDashboardHtml(): string {
       </div>
 
       <div class="workbench-grid">
-        <!-- Left: Raw Input -->
         <div class="editor-panel">
           <div class="panel-header">
             <span>📥 Raw Agent Tool Output / Trajectory</span>
@@ -513,7 +289,6 @@ export function getDashboardHtml(): string {
           </div>
         </div>
 
-        <!-- Right: Compressed Output -->
         <div class="editor-panel">
           <div class="panel-header">
             <span>✨ ContextDiet Output (Sent to LLM)</span>
@@ -521,19 +296,18 @@ export function getDashboardHtml(): string {
           </div>
           <textarea id="diet-output-area" class="code-area" spellcheck="false" readonly></textarea>
           <div class="vault-bar" id="vault-refs-container">
-            <span style="font-size:12px;color:var(--text-muted);">Reversible Vault Refs (<code class="mono">diet_expand_frame</code>): none</span>
+            <span style="font-size:12px;color:var(--text-muted);">SQLite Vault Refs (<code class="mono">diet_expand_frame</code>): none</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- TAB 2: Benchmark Matrix -->
     <div id="tab-benchmark" class="tab-pane">
       <div class="editor-panel" style="padding: 20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <div>
-            <h3 style="font-size:16px;">Automated Multi-Modality Compression & Key Fact Recall Benchmark</h3>
-            <p style="font-size:12.5px;color:var(--text-muted);">Verifies that critical stack traces, HTTP 500 anomalies, exported signatures, and DOM selectors are 100% retained after compression.</p>
+            <h3 style="font-size:16px;">Multi-Modality Compression: Gross vs. Net Savings (with 20% Vault Expansion Overhead)</h3>
+            <p style="font-size:12.5px;color:var(--text-muted);">Evaluates single-turn payload reduction alongside net token savings when an agent expands 20% of folded blocks via <code class="mono">diet_expand_frame</code>.</p>
           </div>
           <button class="btn btn-primary" onclick="runFullBenchmark()">🔄 Re-Run Benchmark Suite</button>
         </div>
@@ -542,24 +316,24 @@ export function getDashboardHtml(): string {
             <tr>
               <th>Benchmark Scenario</th>
               <th>Modality</th>
-              <th>Raw Tokens</th>
+              <th>Raw Tokens (Est.)</th>
               <th>Diet Tokens</th>
-              <th>Reduction %</th>
-              <th>Key Fact Recall</th>
+              <th>Gross Reduction</th>
+              <th>Net Savings (w/ 20% Expand)</th>
+              <th>Target String Recall</th>
               <th>Latency</th>
             </tr>
           </thead>
           <tbody id="benchmark-tbody">
-            <tr><td colspan="7" style="color:var(--text-muted);">Loading benchmark results...</td></tr>
+            <tr><td colspan="8" style="color:var(--text-muted);">Loading benchmark results...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- TAB 3: Live Audit Log -->
     <div id="tab-audit" class="tab-pane">
       <div class="editor-panel" style="padding: 20px;">
-        <h3 style="font-size:16px;margin-bottom:12px;">Live Proxy & MCP Server Audit Stream</h3>
+        <h3 style="font-size:16px;margin-bottom:12px;">Live SQLite Audit Stream (Proxy & MCP Server)</h3>
         <table class="data-table">
           <thead>
             <tr>
@@ -569,7 +343,7 @@ export function getDashboardHtml(): string {
               <th>Raw → Diet Tokens</th>
               <th>Reduction</th>
               <th>Latency</th>
-              <th>Reversible Refs</th>
+              <th>SQLite Vault Refs</th>
               <th>Summary</th>
             </tr>
           </thead>
@@ -578,12 +352,11 @@ export function getDashboardHtml(): string {
       </div>
     </div>
 
-    <!-- TAB 4: Integration Guide -->
     <div id="tab-integration" class="tab-pane">
       <div class="workbench-grid">
         <div class="editor-panel" style="padding: 20px;">
-          <h3 style="font-size:15px;margin-bottom:10px;color:var(--accent-cyan);">1. Connect as MCP Server (Claude Code / OpenCode / Cursor)</h3>
-          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">Add ContextDiet to your <code class="mono">mcpServers</code> configuration to give your coding agent 4 context-engineering tools (<code class="mono">diet_compress_output</code>, <code class="mono">diet_fold_trajectory</code>, <code class="mono">diet_expand_frame</code>, <code class="mono">diet_audit_roi</code>):</p>
+          <h3 style="font-size:15px;margin-bottom:10px;color:var(--accent-cyan);">1. Connect via MCP Server (Codex CLI / Claude Code / OpenCode)</h3>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">Shares the same SQLite WAL database (<code class="mono">.context-diet/vault.sqlite</code>) across processes:</p>
           <pre class="code-area" style="height:260px;border-radius:10px;">{
   "mcpServers": {
     "context-diet": {
@@ -598,23 +371,20 @@ export function getDashboardHtml(): string {
 }</pre>
         </div>
         <div class="editor-panel" style="padding: 20px;">
-          <h3 style="font-size:15px;margin-bottom:10px;color:var(--accent-emerald);">2. Connect as Transparent OpenAI / Anthropic Proxy</h3>
-          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">Point any Agent framework (LangGraph, AutoGen, OpenAI SDK, Anthropic SDK) to <code class="mono">http://localhost:4310/v1</code>:</p>
-          <pre class="code-area" style="height:260px;border-radius:10px;">// OpenAI / LangChain / CrewAI Client
-const client = new OpenAI({
-  baseURL: "http://localhost:4310/v1",
-  apiKey: process.env.OPENAI_API_KEY,
-  defaultHeaders: {
-    "x-upstream-base-url": "https://api.openai.com",
-    "x-context-diet-mode": "balanced"
-  }
-});</pre>
+          <h3 style="font-size:15px;margin-bottom:10px;color:var(--accent-emerald);">2. Connect via Streaming Proxy (OpenAI & Anthropic)</h3>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">Supports full SSE streaming (<code class="mono">stream: true</code>) on <code class="mono">/v1/chat/completions</code>, <code class="mono">/v1/responses</code>, and <code class="mono">/v1/messages</code>:</p>
+          <pre class="code-area" style="height:260px;border-radius:10px;"># For OpenAI Codex CLI / OpenAI SDK:
+export OPENAI_BASE_URL="http://127.0.0.1:4310/v1"
+export OPENAI_API_KEY="sk-..."
+
+# For Claude Code / Anthropic SDK:
+export ANTHROPIC_BASE_URL="http://127.0.0.1:4310"
+export ANTHROPIC_API_KEY="sk-ant-..."</pre>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Reversible Vault Modal -->
   <div id="vault-modal" class="modal-backdrop" onclick="if(event.target===this) closeVaultModal()">
     <div class="modal-box">
       <div class="modal-header">
@@ -645,15 +415,18 @@ const client = new OpenAI({
       const t = data.telemetry;
       const rot = data.contextRotRisk;
 
-      document.getElementById('kpi-saved-tokens').textContent = t.totalSavedTokens.toLocaleString();
+      document.getElementById('kpi-saved-tokens').textContent = t.netSavedTokens.toLocaleString();
       document.getElementById('kpi-token-breakdown').textContent =
-        'Raw: ' + t.totalOriginalTokens.toLocaleString() + ' → Diet: ' + t.totalCompressedTokens.toLocaleString() + ' tokens';
-      document.getElementById('kpi-ratio').textContent = '-' + t.avgCompressionRatioPct + '%';
-      document.getElementById('kpi-latency').textContent = 'Avg pipeline latency: ' + t.avgLatencyMs + ' ms';
+        'Gross: ' + t.grossSavedTokens.toLocaleString() + ' | Expand Overhead: ' + t.expansionOverheadTokens.toLocaleString();
+      document.getElementById('kpi-ratio').textContent = '-' + t.netCompressionRatioPct + '% (Net)';
+      document.getElementById('kpi-latency').textContent =
+        'Gross: -' + t.avgCompressionRatioPct + '% · Avg latency: ' + t.avgLatencyMs + ' ms';
       document.getElementById('kpi-vault-count').textContent = t.vaultEntriesCount.toLocaleString();
+      document.getElementById('kpi-vault-expansions').textContent =
+        'Expanded ' + t.totalExpansionsCount + ' times (persisted in SQLite)';
       document.getElementById('kpi-rot-level').textContent = rot.level + ' (' + rot.score + '/100)';
       document.getElementById('kpi-usd-saved').textContent =
-        'Saved per 1k runs: $' + (t.totalSavedUsdSonnet * 1000).toFixed(2) + ' (Sonnet) | $' + (t.totalSavedUsdOpus * 1000).toFixed(2) + ' (Opus)';
+        'Net Est./1k runs: $' + (t.totalSavedUsdSonnet * 1000).toFixed(2) + ' (Sonnet)';
 
       const tbody = document.getElementById('audit-tbody');
       tbody.innerHTML = t.recentAudits.map(a => \`
@@ -723,7 +496,7 @@ const client = new OpenAI({
       const refsContainer = document.getElementById('vault-refs-container');
       const refs = result.refIds || [];
       if (refs.length > 0) {
-        refsContainer.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">Reversible Vault Refs (click to losslessly restore):</span> ' +
+        refsContainer.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">SQLite Vault Refs (click to restore):</span> ' +
           refs.map(r => \`<span class="ref-pill" onclick="inspectVaultRef('\${r}')">🔓 \${r}</span>\`).join(' ');
       } else {
         refsContainer.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">No folded slices needed.</span>';
@@ -738,7 +511,7 @@ const client = new OpenAI({
       const entry = await res.json();
       document.getElementById('modal-ref-title').textContent = entry.refId;
       document.getElementById('modal-ref-meta').textContent =
-        entry.label + ' · Original: ' + entry.originalTokens + ' tokens';
+        entry.label + ' · Original: ' + entry.originalTokens + ' tokens · Expanded ' + entry.expandCount + 'x';
       document.getElementById('modal-ref-content').textContent = entry.originalContent;
       document.getElementById('vault-modal').classList.add('open');
     }
@@ -757,7 +530,8 @@ const client = new OpenAI({
           <td><span class="tag-pill mono">\${r.category}</span></td>
           <td class="mono">\${r.originalTokens.toLocaleString()}</td>
           <td class="mono"><strong>\${r.compressedTokens.toLocaleString()}</strong></td>
-          <td class="mono text-emerald"><strong>-\${r.compressionRatioPct}%</strong></td>
+          <td class="mono">-\${r.grossCompressionPct}%</td>
+          <td class="mono text-emerald"><strong>-\${r.netCompressionPct}%</strong></td>
           <td class="mono text-cyan"><strong>\${r.retentionRecallPct}% (\${r.retainedCount}/\${r.totalMustRetain})</strong></td>
           <td class="mono">\${r.latencyMs} ms</td>
         </tr>
@@ -767,7 +541,8 @@ const client = new OpenAI({
           <td>ALL 5 MODALITIES</td>
           <td class="mono">\${bench.totalOriginalTokens.toLocaleString()}</td>
           <td class="mono">\${bench.totalCompressedTokens.toLocaleString()}</td>
-          <td class="mono text-emerald">-\${bench.overallCompressionPct}%</td>
+          <td class="mono">-\${bench.overallCompressionPct}%</td>
+          <td class="mono text-emerald">-\${bench.overallNetCompressionPct}%</td>
           <td class="mono text-cyan">\${bench.overallRetentionRecallPct}%</td>
           <td class="mono">\${bench.averageLatencyMs} ms</td>
         </tr>
