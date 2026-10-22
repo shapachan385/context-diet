@@ -5,6 +5,7 @@
 **Smart Context Engineering Gateway, Lossless Tool Output Compressor & Episodic Memory Folder for AI Agents**  
 *面向 AI Agent 的智能上下文压缩网关、可逆无损切片金库与情景记忆折叠引擎*
 
+[![CI](https://github.com/shapachan385/context-diet/actions/workflows/ci.yml/badge.svg)](https://github.com/shapachan385/context-diet/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.6-38bdf8.svg)](https://nodejs.org)
 [![MCP Compatible](https://img.shields.io/badge/MCP-2024--11--05-8b5cf6.svg)](https://modelcontextprotocol.io)
