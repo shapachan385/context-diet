@@ -1,7 +1,7 @@
 {
   "name": "context-diet",
-  "version": "0.1.0",
-  "description": "Smart Context Engineering Gateway, Lossless Tool Output Compressor & Episodic Memory Folder for AI Agents (Proxy + MCP + Dashboard)",
+  "version": "0.2.0",
+  "description": "Streaming OpenAI/Anthropic Context Compression Proxy, Cross-Process SQLite Vault & MCP Server for Coding Agents",
   "type": "module",
   "bin": {
     "context-diet": "./bin/context-diet.mjs"
@@ -9,14 +9,17 @@
   "files": [
     "bin",
     "src",
+    "examples",
+    "docs",
     "SECURITY.md",
     "start-dashboard.bat"
   ],
   "scripts": {
-    "start": "node --experimental-strip-types src/cli.ts serve",
-    "mcp": "node --experimental-strip-types src/cli.ts mcp",
-    "bench": "node --experimental-strip-types src/cli.ts benchmark",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "start": "node --no-warnings --experimental-strip-types src/cli.ts serve",
+    "mcp": "node --no-warnings --experimental-strip-types src/cli.ts mcp",
+    "bench": "node --no-warnings --experimental-strip-types src/cli.ts benchmark",
+    "demo:e2e": "node --no-warnings --experimental-strip-types examples/e2e-agent-workflow.ts",
+    "test": "node --no-warnings --experimental-strip-types --test tests/*.test.ts"
   },
   "keywords": [
     "ai-agent",
@@ -25,6 +28,7 @@
     "mcp-server",
     "episodic-memory",
     "llm-proxy",
+    "codex-cli",
     "claude-code",
     "opencode",
     "cursor"

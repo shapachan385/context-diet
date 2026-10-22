@@ -26,3 +26,6 @@ jobs:
 
       - name: Run benchmark suite
         run: npm run bench
+
+      - name: Run 5-turn E2E streaming proxy & MCP session verification
+        run: npm run demo:e2e

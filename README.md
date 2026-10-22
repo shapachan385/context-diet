@@ -1,107 +1,116 @@
 <div align="center">
 
-# ⚡ ContextDiet
+# ⚡ ContextDiet (v0.2.0)
 
-**Smart Context Engineering Gateway, Lossless Tool Output Compressor & Episodic Memory Folder for AI Agents**  
-*面向 AI Agent 的智能上下文压缩网关、可逆无损切片金库与情景记忆折叠引擎*
+**Streaming Context Engineering Proxy, Cross-Process SQLite Vault & MCP Server for Coding Agents**  
+*面向 AI 编程 Agent（Codex CLI / Claude Code / OpenCode）的流式上下文压缩代理、持久化 SQLite 切片金库与 MCP 服务*
 
 [![CI](https://github.com/shapachan385/context-diet/actions/workflows/ci.yml/badge.svg)](https://github.com/shapachan385/context-diet/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.6-38bdf8.svg)](https://nodejs.org)
 [![MCP Compatible](https://img.shields.io/badge/MCP-2024--11--05-8b5cf6.svg)](https://modelcontextprotocol.io)
-[![Token Savings](https://img.shields.io/badge/Token_Savings-up_to_96%25-10b981.svg)](#benchmark--evaluation)
+[![Net Savings](https://img.shields.io/badge/Net_Savings-67.1%25_(w/_20%25_Expand)-10b981.svg)](#reproducible-benchmark-gross-vs-net-savings)
 
 </div>
 
 ---
 
-## 🔥 Why ContextDiet? (The Problem)
+## 🎯 Problem & Engineering Scope
 
-Modern AI Coding & Research Agents (**Claude Code, OpenCode, Cursor, LangGraph, AutoGen**) suffer from two critical bottlenecks during long-horizon tasks:
-1. **Token Bloat from Noisy Tool Outputs**: A single `vitest` run, K8s JSON dump, or scraped DOM page can inject **8,000+ noisy tokens** into the context window, where 95% is repetitive boilerplate.
-2. **Context Rot (Attention Dilution)**: After 15–30 turns of trial-and-error (`grep` → `read` → failed test → retry), intermediate noise pollutes the LLM's attention mechanism, degrading reasoning accuracy while multiplying API costs.
+When Coding & Web Agents (**OpenAI Codex CLI, Claude Code, OpenCode, Cursor**) run multi-step debugging workflows, single tool outputs (`vitest`/`pytest` logs, K8s JSON responses, large source files, DOM snapshots) routinely inject **5,000–10,000+ noisy tokens** into the conversation history. Because stateless LLM APIs re-send the conversation history on every turn, a single 8,000-token log in Turn 1 costs **40,000 billed prompt tokens** across a 5-turn debugging loop.
 
-**ContextDiet** sits between your Agent and Tools/LLMs (as an **MCP Server** or **Transparent OpenAI/Anthropic Proxy**) and shrinks context tokens by **36%–96%** (**85.9%** average across its five-modality benchmark) in a few milliseconds with **100% lossless recovery on demand**.
+**ContextDiet** is a zero-dependency, deterministic local middleware that operates as both a **Streaming Reverse Proxy** and a **Model Context Protocol (MCP) Server**:
 
----
-
-## ✨ Core Architecture & Key Innovations
-
-```text
-+--------------------+         +-------------------------------------------------------+
-|   Coding / Web     |  MCP /  |                  ⚡ ContextDiet Engine                 |
-|      Agents        |  Proxy  |                                                       |
-| (Claude / OpenCode | <=====> |  1. Modality Router (JSON / Log / AST Code / DOM)     |
-|  Cursor / OpenAI)  |         |  2. Anomaly & Stack-Trace Rescue Filter               |
-+--------------------+         |  3. Episodic Memory Folder (<EpisodicMemoryFrame>)    |
-                               |  4. Reversible Vault (diet_ref:hash -> 100% Restore)  |
-                               +-------------------------------------------------------+
-```
-
-1. **Structure-Aware Multi-Modal Compression (`src/compressors/`)**:
-   - **`JSON Schema & Anomaly Compressor`**: Infers unified schema & value distributions for homogeneous arrays, keeps head/tail samples, **automatically rescues any middle item containing HTTP 4xx/5xx or error keywords**, and folds the rest.
-   - **`Terminal & CI Log Denoiser`**: Strips ANSI codes and passing test spam (`✓ 224 passed`) while preserving 100% of error stack traces, causal context lines, and exit codes.
-   - **`AST-Inspired Code Skeletonizer`**: Preserves imports, exported interfaces/types, and function signatures while folding non-focal implementation bodies.
-   - **`Browser Agent DOM Pruner`**: Strips inline `<svg>`, base64 blobs, `<script>` blocks, and Tailwind class soup while keeping interactive selectors (`id`, `name`, `data-testid`, `role`).
-2. **Episodic Memory Folding (`src/memory/episodicFolder.ts`)**:
-   - Condenses multi-turn intermediate debugging loops into structured `<EpisodicMemoryFrame>` blocks containing `<ToolsInvoked>`, `<FilesTouched>`, and `<PitfallsEncountered>` (preventing agents from repeating the same mistake).
-3. **100% Lossless Reversible Vault (`src/store/vault.ts`)**:
-   - Every folded block is indexed by a deterministic hash (`diet_ref:a1b2c3d4`). If the LLM ever needs the raw omitted lines, it simply invokes the MCP tool `diet_expand_frame({ refId })` to restore the exact original content.
+1. **Real Upstream Forwarding with SSE Streaming (`stream: true`)**:
+   - **OpenAI Chat Completions** (`POST /v1/chat/completions`)
+   - **OpenAI Responses API** (`POST /v1/responses` — used by OpenAI Codex CLI)
+   - **Anthropic Messages API** (`POST /v1/messages` — used by Claude Code)
+2. **Cross-Process Persistent SQLite Vault (`node:sqlite` WAL Mode)**:
+   - Every omitted JSON array slice, log block, or folded function body is persisted in `.context-diet/vault.sqlite` with a deterministic hash (`diet_ref:<sha256_prefix>`).
+   - Using SQLite in `WAL` (`Write-Ahead Logging`) mode allows the **HTTP Proxy**, **MCP stdio process**, and **CLI** to share the exact same persistent store across processes and restarts.
+   - When an agent needs raw omitted lines, calling the MCP tool `diet_expand_frame({ refId })` restores the exact original slice from SQLite and records the **Expansion Overhead** so you can track true **Net Token Savings** (`Gross Saved - Expansion Overhead`).
+3. **Protocol-Safe Episodic Folding (`preserveToolPairing: true`)**:
+   - In live Proxy mode, historical tool outputs outside the active window are folded *in-place* into `<EpisodicToolDigest>` summaries without breaking `assistant.tool_calls` ↔ `tool.tool_call_id` schema pairing constraints.
 
 ---
 
-## 📊 Reproducible Benchmark & Key Fact Recall
+## 📊 Reproducible Benchmark: Gross vs. Net Savings
 
-Run `npm run bench` to verify on the built-in 5-modality benchmark suite:
+Run `npm run bench` to execute the built-in 5-modality benchmark suite.
 
-| Scenario / Modality | Raw Tokens | Diet Tokens | Token Reduction | Key Fact Recall | Latency |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **K8s Cluster 65-Node JSON Telemetry (Anomalous 500 Deadlock)** (`JSON`) | 7,970 | 814 | **-89.8%** | **100%** (5/5) | 3.43 ms |
-| **Vitest 225-Test Verbose CI Log (1 Buried Assertion Failure)** (`LOG`) | 7,759 | 292 | **-96.2%** | **100%** (5/5) | 2.09 ms |
-| **TypeScript Settlement Service (AST Skeleton + Focus Preservation)** (`CODE`) | 974 | 625 | **-35.8%** | **100%** (6/6) | 0.91 ms |
-| **Browser Agent DOM Snapshot (SVG + Base64 + Tailwind Pruning)** (`DOM`) | 5,918 | 1,222 | **-79.4%** | **100%** (5/5) | 0.83 ms |
-| **12-Turn Debugging Trajectory (Episodic Memory Folding)** (`EPISODIC`) | 2,167 | 533 | **-75.4%** | **100%** (5/5) | 0.72 ms |
-| **Total / Average** | **24,788** | **3,486** | **-85.9%** | **100%** | **1.60 ms** |
+### Methodology & Honest Accounting Notes:
+- **Token Estimation**: Offline benchmarks use a deterministic heuristic BPE estimator (`src/utils/tokenizer.ts`). When forwarding live traffic through the proxy, actual upstream `usage.prompt_tokens` / `usage.input_tokens` are returned alongside local estimates.
+- **Gross vs. Net Savings**: Aggressive compression occasionally requires the model to expand a folded block. The benchmark below explicitly models a **20% Vault Expansion rate** (plus 45 tokens of MCP tool call framing per expansion) to report realistic **Net Single-Turn Savings**.
+- **Target String Recall**: Verifies that designated critical strings (buried HTTP 500 deadlock entries, stack trace line numbers, exported TypeScript interfaces, interactive DOM selectors) remain present in the compressed output.
 
-Token counts and key-fact recall are deterministic and reproducible from the committed fixtures.
-The latency column is wall-clock time from a single machine and will vary with your hardware and
-load — treat it as indicative rather than a comparable benchmark result.
+| Scenario / Modality | Raw Tokens (Est.) | Diet Tokens | Gross Reduction | Net Savings (w/ 20% Expand) | Target String Recall | Latency |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **K8s Cluster 65-Node JSON Telemetry (Anomalous 500 Deadlock)** (`JSON`) | 7,970 | 817 | -89.7% | **-69.8%** | **100%** (5/5) | 3.54 ms |
+| **Vitest 225-Test Verbose CI Log (1 Buried Assertion Failure)** (`LOG`) | 7,759 | 293 | -96.2% | **-76.3%** | **100%** (5/5) | 1.74 ms |
+| **TypeScript Settlement Service (AST Skeleton + Focus Preservation)** (`CODE`) | 974 | 626 | -35.7% | **-21.4%** | **100%** (6/6) | 0.96 ms |
+| **Browser Agent DOM Snapshot (SVG + Base64 + Tailwind Pruning)** (`DOM`) | 5,918 | 1,236 | -79.1% | **-63.5%** | **100%** (5/5) | 1.25 ms |
+| **12-Turn Debugging Trajectory (Episodic Memory Folding)** (`EPISODIC`) | 2,167 | 534 | -75.4% | **-54.5%** | **100%** (5/5) | 1.11 ms |
+| **Total / Average** | **24,788** | **3,506** | **-85.9%** | **-67.1%** | **100%** | **1.72 ms** |
 
 ---
 
-## 🚀 Quick Start
+## 🔄 End-to-End 5-Turn Agent Session Evaluation (`npm run demo:e2e`)
 
-### 1. Get the code
+To verify how single-payload compression and on-demand Vault expansion behave across a multi-turn session, run `npm run demo:e2e` (see full analysis in [`docs/REAL_WORLD_EVALUATION.md`](docs/REAL_WORLD_EVALUATION.md)):
 
-ContextDiet has no runtime dependencies, so there is nothing to install and no build step.
-You only need Node.js >= 22.6.
+| Turn | Agent Action | Baseline Billed Prompt Tokens | ContextDiet Billed Tokens | Turn Reduction |
+| :---: | :--- | :---: | :---: | :---: |
+| **#1** | Turn 1: Run Vitest Suite (225 tests, 1 buried failure) | 8,331 | 494 | **-94.1%** |
+| **#2** | Turn 2: Read TypeScript Settlement Module | 9,576 | 1,305 | **-86.4%** |
+| **#3** | Turn 3: Agent Calls MCP `diet_expand_frame` on Folded Function Body | 9,896 | 1,395 | **-85.9%** |
+| **#4** | Turn 4: Fetch 65-Node K8s Telemetry JSON (Node #37 HTTP 500 Deadlock) | 19,923 | 1,937 | **-90.3%** |
+| **#5** | Turn 5: Final Verification & Root-Cause Summary | 20,078 | 2,083 | **-89.6%** |
+| **Cumulative Session Total** | **5 Turns (incl. Turn 3 Vault Expansion)** | **67,804** | **7,214** | **-89.4%** |
 
+---
+
+## 🚀 Quick Start & Agent Integration
+
+### 1. Clone & Verify (Zero Runtime Dependencies, Requires Node.js >= 22.6)
 ```bash
 git clone https://github.com/shapachan385/context-diet.git
 cd context-diet
-node --version   # must be >= 22.6
+npm test
+npm run bench
+npm run demo:e2e
 ```
 
-### 2. Start the Web Dashboard, Playground & Proxy Gateway
+### 2. Start the Gateway & Web Dashboard
 ```bash
-node --experimental-strip-types src/cli.ts serve 4310
+npm start
 # Open http://127.0.0.1:4310 in your browser
 ```
 
-### 3. Run Automated Tests & Benchmark Suite
-```bash
-npm test
-npm run bench
-```
+### 3. Connect Real Agents via Streaming Proxy + MCP
 
-### 4. Connect as an MCP Server (Claude Code / OpenCode / Cursor)
-Add to your MCP configuration:
+#### Option A: OpenAI Codex CLI / OpenAI SDK (`/v1/responses` & `/v1/chat/completions`)
+```bash
+export OPENAI_BASE_URL="http://127.0.0.1:4310/v1"
+export OPENAI_API_KEY="sk-..."
+```
+ContextDiet automatically compresses oversized `function_call_output` / `tool` payloads, preserves `tool_call_id` pairing, and streams SSE responses (`text/event-stream`) from `https://api.openai.com` (or any custom `x-upstream-base-url`).
+
+#### Option B: Claude Code / Anthropic SDK (`/v1/messages`)
+```bash
+export ANTHROPIC_BASE_URL="http://127.0.0.1:4310"
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+ContextDiet compresses `tool_result` blocks inside user turns and forwards `x-api-key`, `anthropic-version`, and `anthropic-beta` headers to `https://api.anthropic.com` with full SSE streaming pass-through.
+
+#### Option C: Register the MCP Server (for On-Demand Vault Expansion)
+Add `context-diet` to your Agent's `mcpServers` config so the Agent can call `diet_expand_frame` against the shared `.context-diet/vault.sqlite` database:
 ```json
 {
   "mcpServers": {
     "context-diet": {
       "command": "node",
       "args": [
+        "--no-warnings",
         "--experimental-strip-types",
         "/absolute/path/to/context-diet/src/cli.ts",
         "mcp"
@@ -110,9 +119,3 @@ Add to your MCP configuration:
   }
 }
 ```
-
-#### Exposed MCP Tools:
-- `diet_compress_output`: Compress noisy JSON, logs, source code, or DOM snapshots.
-- `diet_fold_trajectory`: Fold multi-turn agent trajectories into `<EpisodicMemoryFrame>` blocks.
-- `diet_expand_frame`: Losslessly restore any folded slice by its `diet_ref:...` ID.
-- `diet_audit_roi`: Query session token savings, USD ROI, and Context Rot risk score.
