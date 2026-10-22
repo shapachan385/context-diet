@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.6-38bdf8.svg)](https://nodejs.org)
 [![MCP Compatible](https://img.shields.io/badge/MCP-2024--11--05-8b5cf6.svg)](https://modelcontextprotocol.io)
-[![Token Savings](https://img.shields.io/badge/Token_Savings-60%25--96%25-10b981.svg)](#benchmark--evaluation)
+[![Token Savings](https://img.shields.io/badge/Token_Savings-up_to_96%25-10b981.svg)](#benchmark--evaluation)
 
 </div>
 
@@ -20,7 +20,7 @@ Modern AI Coding & Research Agents (**Claude Code, OpenCode, Cursor, LangGraph, 
 1. **Token Bloat from Noisy Tool Outputs**: A single `vitest` run, K8s JSON dump, or scraped DOM page can inject **8,000+ noisy tokens** into the context window, where 95% is repetitive boilerplate.
 2. **Context Rot (Attention Dilution)**: After 15–30 turns of trial-and-error (`grep` → `read` → failed test → retry), intermediate noise pollutes the LLM's attention mechanism, degrading reasoning accuracy while multiplying API costs.
 
-**ContextDiet** sits between your Agent and Tools/LLMs (as an **MCP Server** or **Transparent OpenAI/Anthropic Proxy**) and shrinks context tokens by **60%–96%** in **< 2ms** with **100% lossless recovery on demand**.
+**ContextDiet** sits between your Agent and Tools/LLMs (as an **MCP Server** or **Transparent OpenAI/Anthropic Proxy**) and shrinks context tokens by **36%–96%** (**85.9%** average across its five-modality benchmark) in a few milliseconds with **100% lossless recovery on demand**.
 
 ---
 
@@ -61,6 +61,10 @@ Run `npm run bench` to verify on the built-in 5-modality benchmark suite:
 | **Browser Agent DOM Snapshot (SVG + Base64 + Tailwind Pruning)** (`DOM`) | 5,918 | 1,222 | **-79.4%** | **100%** (5/5) | 0.83 ms |
 | **12-Turn Debugging Trajectory (Episodic Memory Folding)** (`EPISODIC`) | 2,167 | 533 | **-75.4%** | **100%** (5/5) | 0.72 ms |
 | **Total / Average** | **24,788** | **3,486** | **-85.9%** | **100%** | **1.60 ms** |
+
+Token counts and key-fact recall are deterministic and reproducible from the committed fixtures.
+The latency column is wall-clock time from a single machine and will vary with your hardware and
+load — treat it as indicative rather than a comparable benchmark result.
 
 ---
 

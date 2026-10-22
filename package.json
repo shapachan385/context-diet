@@ -4,8 +4,14 @@
   "description": "Smart Context Engineering Gateway, Lossless Tool Output Compressor & Episodic Memory Folder for AI Agents (Proxy + MCP + Dashboard)",
   "type": "module",
   "bin": {
-    "context-diet": "./src/cli.ts"
+    "context-diet": "./bin/context-diet.mjs"
   },
+  "files": [
+    "bin",
+    "src",
+    "SECURITY.md",
+    "start-dashboard.bat"
+  ],
   "scripts": {
     "start": "node --experimental-strip-types src/cli.ts serve",
     "mcp": "node --experimental-strip-types src/cli.ts mcp",
@@ -35,5 +41,8 @@
   "homepage": "https://github.com/shapachan385/context-diet#readme",
   "engines": {
     "node": ">=22.6.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
