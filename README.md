@@ -71,19 +71,30 @@ load — treat it as indicative rather than a comparable benchmark result.
 
 ## 🚀 Quick Start
 
-### 1. Start the Web Dashboard, Playground & Proxy Gateway
+### 1. Get the code
+
+ContextDiet has no runtime dependencies, so there is nothing to install and no build step.
+You only need Node.js >= 22.6.
+
+```bash
+git clone https://github.com/shapachan385/context-diet.git
+cd context-diet
+node --version   # must be >= 22.6
+```
+
+### 2. Start the Web Dashboard, Playground & Proxy Gateway
 ```bash
 node --experimental-strip-types src/cli.ts serve 4310
 # Open http://127.0.0.1:4310 in your browser
 ```
 
-### 2. Run Automated Tests & Benchmark Suite
+### 3. Run Automated Tests & Benchmark Suite
 ```bash
 npm test
 npm run bench
 ```
 
-### 3. Connect as an MCP Server (Claude Code / OpenCode / Cursor)
+### 4. Connect as an MCP Server (Claude Code / OpenCode / Cursor)
 Add to your MCP configuration:
 ```json
 {
