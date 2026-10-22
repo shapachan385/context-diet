@@ -1,0 +1,39 @@
+{
+  "name": "context-diet",
+  "version": "0.1.0",
+  "description": "Smart Context Engineering Gateway, Lossless Tool Output Compressor & Episodic Memory Folder for AI Agents (Proxy + MCP + Dashboard)",
+  "type": "module",
+  "bin": {
+    "context-diet": "./src/cli.ts"
+  },
+  "scripts": {
+    "start": "node --experimental-strip-types src/cli.ts serve",
+    "mcp": "node --experimental-strip-types src/cli.ts mcp",
+    "bench": "node --experimental-strip-types src/cli.ts benchmark",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
+  "keywords": [
+    "ai-agent",
+    "context-engineering",
+    "token-compression",
+    "mcp-server",
+    "episodic-memory",
+    "llm-proxy",
+    "claude-code",
+    "opencode",
+    "cursor"
+  ],
+  "author": "ContextDiet Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shapachan385/context-diet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shapachan385/context-diet/issues"
+  },
+  "homepage": "https://github.com/shapachan385/context-diet#readme",
+  "engines": {
+    "node": ">=22.6.0"
+  }
+}
